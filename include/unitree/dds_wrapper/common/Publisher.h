@@ -5,6 +5,8 @@
 
 #include <unitree/robot/channel/channel_publisher.hpp>
 #include <atomic>
+#include <chrono>
+#include <iostream>
 #include <thread>
 #include <memory>
 
@@ -153,8 +155,15 @@ private:
 
       unlock();
 
-      if(keep_running_) { 
-        publisher_->Write(outgoing, 0); 
+      if(keep_running_) {
+        if(!publisher_->Write(outgoing, 0)) {
+          // publishing runs in a loop, report at most once per second
+          auto now = std::chrono::steady_clock::now();
+          if(now - last_write_failure_log_ > std::chrono::seconds(1)) {
+            last_write_failure_log_ = now;
+            std::cerr << "[ERROR] Failed to publish on " << publisher_->GetChannelName() << std::endl;
+          }
+        }
       }
       post_communication();
     }
@@ -162,6 +171,7 @@ private:
   }
 
   PublisherSharedPtr publisher_;
+  std::chrono::steady_clock::time_point last_write_failure_log_{};
   std::atomic_bool is_running_;
   std::atomic_bool keep_running_;
 

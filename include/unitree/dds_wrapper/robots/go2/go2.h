@@ -24,9 +24,18 @@ inline void shutdown()
     msc->Init();
 
     std::string form, name;
-    while (msc->CheckMode(form, name), !name.empty()) {
-      if (msc->ReleaseMode()) {
-        spdlog::warn("Failed to switch to Release Mode.");
+    while (true) {
+      int32_t ret = msc->CheckMode(form, name);
+      if (ret != 0) {
+        // do not report "no controller running" when the state is unknown
+        UT_THROW(common::CommonException, "CheckMode failed, error code: " + std::to_string(ret));
+      }
+      if (name.empty()) {
+        break;
+      }
+      ret = msc->ReleaseMode();
+      if (ret != 0) {
+        spdlog::warn("Failed to switch to Release Mode, error code: {}", ret);
       }
       sleep(3);
     }

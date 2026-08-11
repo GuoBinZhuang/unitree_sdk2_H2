@@ -2,7 +2,10 @@
 #define __UT_ROBOT_H2_LOCO_CLIENT_HPP__
 
 #include "h2_loco_api.hpp"
+#include <iostream>
 #include <limits>
+#include <unitree/common/error.hpp>
+#include <unitree/common/exception.hpp>
 #include <unitree/robot/client/client.hpp>
 #include <unitree/robot/go2/public/jsonize_type.hpp>
 
@@ -43,9 +46,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_FSM_ID, parameter, data);
 
+    go2::JsonizeDataInt json;
     if (ret == 0) {
-      go2::JsonizeDataInt json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       fsm_id = json.data;
     }
 
@@ -57,9 +63,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_FSM_MODE, parameter, data);
 
+    go2::JsonizeDataInt json;
     if (ret == 0) {
-      go2::JsonizeDataInt json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       fsm_mode = json.data;
     }
 
@@ -71,9 +80,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_BALANCE_MODE, parameter, data);
 
+    go2::JsonizeDataInt json;
     if (ret == 0) {
-      go2::JsonizeDataInt json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       balance_mode = json.data;
     }
 
@@ -85,9 +97,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_SWING_HEIGHT, parameter, data);
 
+    go2::JsonizeDataFloat json;
     if (ret == 0) {
-      go2::JsonizeDataFloat json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       swing_height = json.data;
     }
 
@@ -99,9 +114,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_STAND_HEIGHT, parameter, data);
 
+    go2::JsonizeDataFloat json;
     if (ret == 0) {
-      go2::JsonizeDataFloat json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       stand_height = json.data;
     }
 
@@ -113,9 +131,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_PHASE, parameter, data);
 
+    JsonizeDataVecFloat json;
     if (ret == 0) {
-      JsonizeDataVecFloat json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       phase = json.data;
     }
 
@@ -127,9 +148,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_ARM_SDK_STATUS, parameter, data);
 
+    go2::JsonizeDataBool json;
     if (ret == 0) {
-      go2::JsonizeDataBool json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       arm_sdk_status = json.data;
     }
 
@@ -141,9 +165,12 @@ class LocoClient : public Client {
 
     int32_t ret = Call(ROBOT_API_ID_LOCO_GET_AVAILABLE_FSM_IDS, parameter, data);
 
+    JsonizeFsmIdList json;
     if (ret == 0) {
-      JsonizeFsmIdList json;
-      common::FromJsonString(data, json);
+      ret = ParseResponse(data, json);
+    }
+
+    if (ret == 0) {
       ids.clear();
       names.clear();
       for (const auto& info : json.fsm_ids) {
@@ -305,6 +332,20 @@ class LocoClient : public Client {
   int32_t DisableArmSDK() { return SetArmSdkStatus(false); }
 
  private:
+  // Turn a malformed response into an error code instead of letting the json
+  // exception escape from an api that reports failures through its return value.
+  template <typename T>
+  static int32_t ParseResponse(const std::string& data, T& json) {
+    try {
+      common::FromJsonString(data, json);
+    } catch (const common::Exception& e) {
+      std::cerr << "[LocoClient] failed to parse response: " << e.what() << std::endl;
+      return e.GetCode() != 0 ? e.GetCode() : UT_ERR_JSON;
+    }
+
+    return 0;
+  }
+
   bool continous_move_ = false;
   bool first_shake_hand_stage_ = true;
 };
