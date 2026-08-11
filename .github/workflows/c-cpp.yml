@@ -20,7 +20,7 @@ jobs:
       run: |
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y cmake g++ build-essential libyaml-cpp-dev libeigen3-dev
+        apt-get install -y cmake g++ build-essential libyaml-cpp-dev libeigen3-dev libspdlog-dev libfmt-dev
         
     - name: CMake build
       run: |
