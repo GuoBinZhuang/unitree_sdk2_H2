@@ -3,6 +3,7 @@ project(unitree_sdk2 VERSION 2.0.0)
 
 ## Project Options
 option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_TESTS "Build unit tests" ON)
 
 ## Set compiler to use c++ 17 features
 set(CMAKE_CXX_STANDARD 17)
@@ -58,6 +59,11 @@ target_include_directories(unitree_sdk2 INTERFACE
 
 if (BUILD_EXAMPLES)
     add_subdirectory(example)
+endif ()
+
+if (BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
 endif ()
 
 ## Install the library

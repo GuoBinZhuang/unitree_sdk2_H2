@@ -32,6 +32,17 @@ cmake ..
 make
 ```
 
+### Run unit tests
+
+Unit tests live in `test/` and use a small dependency free framework (`test/ut_test.hpp`).
+They are built by default and can be disabled with `-DBUILD_TESTS=OFF`.
+
+```bash
+cmake -Bbuild
+cmake --build build -j$(nproc)
+cd build && ctest --output-on-failure
+```
+
 ### Installation
 
 To build your own application with the SDK, you can install the unitree_sdk2 to your system directory:
