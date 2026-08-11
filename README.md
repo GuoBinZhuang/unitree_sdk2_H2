@@ -56,5 +56,9 @@ You can refer to `example/cmake_sample` on how to import the unitree_sdk2 into y
 
 Note that if you install the library to other places other than `/opt/unitree_robotics`, you need to make sure the path is added to "${CMAKE_PREFIX_PATH}" so that cmake can find it with "find_package()".
 
+### Shared example utilities
+
+Helpers used by more than one example live in `example/common` (CRC32, gamepad parsing, wav read/write, audio helpers, command line parsing, sport client test menu). They are exposed through the `example_common` CMake interface target and are included as `#include "common/<file>.hpp"`.
+
 ### Notice
 For more reference information, please go to [Unitree Document Center](https://support.unitree.com/home/zh/developer).

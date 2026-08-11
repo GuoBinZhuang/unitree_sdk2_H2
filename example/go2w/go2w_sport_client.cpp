@@ -9,18 +9,14 @@
 #include <unitree/idl/go2/SportModeState_.hpp>
 #include <unitree/robot/channel/channel_subscriber.hpp>
 
+#include "common/sport_test_option.hpp"
+
 #define TOPIC_HIGHSTATE "rt/lf/sportmodestate"
 
 using namespace std;
 
 // 测试选项
-struct TestOption
-{
-    std::string name; // 名称
-    int id;           // id
-};
-
-const vector<TestOption> option_list =
+const std::vector<unitree::common::TestOption> option_list =
     {{"damp", 0},        // 阻尼
      {"stand_up", 1},    // 站立锁定
      {"stand_down", 2},  // 趴下
@@ -31,59 +27,6 @@ const vector<TestOption> option_list =
      {"get_state", 7},   // 获取状态
      {"recovery", 8},    // 恢复站立
      {"balance", 9}};    // 平衡站立
-
-int ConvertToInt(const std::string &str)
-{
-    try
-    {
-        std::stoi(str); // 尝试转换字符串为整数
-        return std::stoi(str);
-    }
-    catch (const std::invalid_argument &)
-    {
-        return -1; // 字符串包含非数字字符
-    }
-    catch (const std::out_of_range &)
-    {
-        return -1; // 字符串表示的数字超出int范围
-    }
-}
-
-class UserInterface
-{
-public:
-    UserInterface(){};
-    ~UserInterface(){};
-
-    void terminalHandle()
-    {
-        std::string input;
-        std::getline(std::cin, input);
-
-        // 如果输入的是 list 则输出所有的测试选项名称和id
-        if (input.compare("list") == 0)
-        {
-            for (TestOption option : option_list)
-            {
-                std::cout << option.name << ", id: " << option.id << std::endl;
-            }
-        }
-
-        // 如果输入的名名称或id在枚举的测试选项中，则记录测试选项名称和id
-        for (TestOption option : option_list)
-        {
-            if (input.compare(option.name) == 0 || ConvertToInt(input) == option.id)
-            {
-                test_option_->id = option.id;
-                test_option_->name = option.name;
-                std::cout << "Test: " << test_option_->name << ", test_id: " << test_option_->id << std::endl;
-            }
-        }
-    };
-
-    // 待测试的功能的指针
-    TestOption *test_option_;
-};
 
 void HighStateHandler(const void *message)
 {
@@ -108,7 +51,7 @@ int main(int argc, char **argv)
     suber.InitChannel(HighStateHandler);
 
     // 待测试的选项
-    TestOption test_option;
+    unitree::common::TestOption test_option;
     test_option.id = 1;
 
     // 初始化sportclient
@@ -116,10 +59,8 @@ int main(int argc, char **argv)
     sport_client.SetTimeout(20.0f);
     sport_client.Init();
 
-    // 初始化用户终端
-    UserInterface user_interface;
-    // 将user_interface.test_option_ 指向 test_option，用于传递终端输入的结果
-    user_interface.test_option_ = &test_option;
+    // 初始化用户终端，终端输入的结果写入 test_option
+    unitree::common::UserInterface user_interface(option_list, &test_option);
 
     std::cout << "Input \"list \" to list all test option ..." << std::endl;
     long res_count = 0;

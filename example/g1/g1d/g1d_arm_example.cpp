@@ -5,7 +5,7 @@
 #include <thread>
 #include <chrono>
 
-#include "gamepad.hpp"
+#include "common/gamepad.hpp"
 
 // DDS
 #include <unitree/robot/channel/channel_publisher.hpp>
@@ -16,6 +16,8 @@
 #include <unitree/idl/hg/LowCmd_.hpp>
 #include <unitree/idl/hg/LowState_.hpp>
 #include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
+
+#include "common/crc32.hpp"
 
 static const std::string HG_CMD_TOPIC = "rt/lowcmd";
 static const std::string HG_IMU_TORSO = "rt/secondary_imu";
@@ -145,27 +147,6 @@ enum G1DJointIndex {
 };
 
 // CRC校验值计算
-inline uint32_t Crc32Core(uint32_t *ptr, uint32_t len) {
-  uint32_t xbit = 0;
-  uint32_t data = 0;
-  uint32_t CRC32 = 0xFFFFFFFF;
-  const uint32_t dwPolynomial = 0x04c11db7;
-  for (uint32_t i = 0; i < len; i++) {
-    xbit = 1 << 31;
-    data = ptr[i];
-    for (uint32_t bits = 0; bits < 32; bits++) {
-      if (CRC32 & 0x80000000) {
-        CRC32 <<= 1;
-        CRC32 ^= dwPolynomial;
-      } else
-        CRC32 <<= 1;
-      if (data & xbit) CRC32 ^= dwPolynomial;
-
-      xbit >>= 1;
-    }
-  }
-  return CRC32;
-};
 
 // 躯干IMU消息回调函数
 void imuTorsoHandler(const void *message) {
@@ -177,7 +158,7 @@ void imuTorsoHandler(const void *message) {
 void LowStateHandler(const void *message) {
   LowState_ low_state = *(const LowState_ *)message;
   g1d_low_state = low_state;
-  if (low_state.crc() != Crc32Core((uint32_t *)&low_state, (sizeof(LowState_) >> 2) - 1)) {
+  if (low_state.crc() != unitree::common::Crc32Core((uint32_t *)&low_state, (sizeof(LowState_) >> 2) - 1)) {
     std::cout << "[ERROR] CRC Error" << std::endl;
     return;
   }
@@ -274,7 +255,7 @@ int main(int argc, char const *argv[]) {
     dds_low_command.motor_cmd().at(LeftShoulderPitch).q() = L_Shoulder_des;
     dds_low_command.motor_cmd().at(RightShoulderPitch).q() = R_Shoulder_des;
 
-    dds_low_command.crc() = Crc32Core((uint32_t *)&dds_low_command, (sizeof(dds_low_command) >> 2) - 1);
+    dds_low_command.crc() = unitree::common::Crc32Core((uint32_t *)&dds_low_command, (sizeof(dds_low_command) >> 2) - 1);
     lowcmd_publisher -> Write(dds_low_command); //发布底层控制指令
 
     t += control_dt;

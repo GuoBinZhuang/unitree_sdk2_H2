@@ -3,7 +3,7 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "gamepad.hpp"
+#include "common/gamepad.hpp"
 
 // DDS
 #include <unitree/robot/channel/channel_publisher.hpp>
@@ -14,6 +14,8 @@
 #include <unitree/idl/hg/LowCmd_.hpp>
 #include <unitree/idl/hg/LowState_.hpp>
 #include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
+
+#include "common/crc32.hpp"
 
 static const std::string HG_CMD_TOPIC = "rt/lowcmd";
 static const std::string HG_IMU_TORSO = "rt/secondary_imu";
@@ -127,29 +129,6 @@ enum H2JointIndex {
   HEAD_YAW = 30,
 };
 
-inline uint32_t Crc32Core(uint32_t *ptr, uint32_t len) {
-  uint32_t xbit = 0;
-  uint32_t data = 0;
-  uint32_t CRC32 = 0xFFFFFFFF;
-  const uint32_t dwPolynomial = 0x04c11db7;
-  for (uint32_t i = 0; i < len; i++) {
-    xbit = 1 << 31;
-    data = ptr[i];
-    for (uint32_t bits = 0; bits < 32; bits++) {
-      if (CRC32 & 0x80000000) {
-        CRC32 <<= 1;
-        CRC32 ^= dwPolynomial;
-      } else
-        CRC32 <<= 1;
-      if (data & xbit)
-        CRC32 ^= dwPolynomial;
-
-      xbit >>= 1;
-    }
-  }
-  return CRC32;
-};
-
 class H2Example {
 private:
   double time_;
@@ -219,7 +198,7 @@ public:
   void LowStateHandler(const void *message) {
     LowState_ low_state = *(const LowState_ *)message;
     if (low_state.crc() !=
-        Crc32Core((uint32_t *)&low_state, (sizeof(LowState_) >> 2) - 1)) {
+        unitree::common::Crc32Core((uint32_t *)&low_state, (sizeof(LowState_) >> 2) - 1)) {
       std::cout << "[ERROR] CRC Error" << std::endl;
       return;
     }
@@ -318,8 +297,8 @@ public:
         dds_low_command.motor_cmd().at(i).kd() = mc->kd.at(i);
       }
 
-      dds_low_command.crc() = Crc32Core((uint32_t *)&dds_low_command,
-                                        (sizeof(dds_low_command) >> 2) - 1);
+      dds_low_command.crc() = unitree::common::Crc32Core((uint32_t *)&dds_low_command,
+                                                         (sizeof(dds_low_command) >> 2) - 1);
       lowcmd_publisher_->Write(dds_low_command);
     }
   }

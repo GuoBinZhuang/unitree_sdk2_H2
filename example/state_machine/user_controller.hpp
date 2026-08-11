@@ -7,7 +7,7 @@
 #include <string>
 
 #include "robot_interface.hpp"
-#include "gamepad.hpp"
+#include "common/gamepad.hpp"
 #include "cfg.hpp"
 
 namespace fs = std::filesystem;
