@@ -1,8 +1,8 @@
 add_executable(a2_sport_client  sport/a2_sport_client.cpp)
-target_link_libraries(a2_sport_client unitree_sdk2)
+target_link_libraries(a2_sport_client unitree_sdk2 example_common)
 
 add_executable(a2_sport_state  sport/a2_sport_state.cpp)
 target_link_libraries(a2_sport_state unitree_sdk2)
 
 add_executable(a2_audio_client_example  audio/a2_audio_client_example.cpp)
-target_link_libraries(a2_audio_client_example unitree_sdk2)
+target_link_libraries(a2_audio_client_example unitree_sdk2 example_common)

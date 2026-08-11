@@ -15,6 +15,9 @@
 #include "motors.hpp"
 
 #include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
+
+#include "common/crc32.hpp"
+
 using namespace unitree::robot::b2;
 
 static const std::string kTopicLowCommand = "rt/lowcmd";
@@ -93,8 +96,8 @@ public:
         dds_low_command.motor_cmd().at(i).kp() = mc_tmp_ptr->kp.at(i);
         dds_low_command.motor_cmd().at(i).kd() = mc_tmp_ptr->kd.at(i);
       }
-      dds_low_command.crc() = Crc32Core((uint32_t *)&dds_low_command,
-                                        (sizeof(dds_low_command) >> 2) - 1);
+      dds_low_command.crc() = unitree::common::Crc32Core((uint32_t *)&dds_low_command,
+                                                         (sizeof(dds_low_command) >> 2) - 1);
       lowcmd_publisher_->Write(dds_low_command);
     }
   }

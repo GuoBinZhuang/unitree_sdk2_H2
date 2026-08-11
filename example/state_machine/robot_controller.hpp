@@ -23,7 +23,7 @@
 #include "unitree/common/time/time_tool.hpp"
 
 #include "state_machine.hpp"
-#include "gamepad.hpp"
+#include "common/gamepad.hpp"
 #include "robot_interface.hpp"
 
 using namespace unitree::common;

@@ -1,6 +1,13 @@
 #ifndef __UT_ROBOT_WAV_READER_HPP__
 #define __UT_ROBOT_WAV_READER_HPP__
 
+#include <cstdint>
+#include <cstdio>
+#include <fstream>
+#include <istream>
+#include <string>
+#include <vector>
+
 struct WaveHeader {
   void SeekToDataChunk(std::istream &is) {
     while (is && subchunk2_id != 0x61746164) {
@@ -27,7 +34,8 @@ struct WaveHeader {
 
 static_assert(sizeof(WaveHeader) == 44);
 
-std::vector<uint8_t> ReadWaveImpl(std::istream &is, int32_t *sampling_rate,
+inline std::vector<uint8_t> ReadWaveImpl(std::istream &is,
+                                  int32_t *sampling_rate,
                                   int8_t *channelCount, bool *is_ok) {
   WaveHeader header{};
   is.read(reinterpret_cast<char *>(&header.chunk_id), sizeof(header.chunk_id));
@@ -178,7 +186,7 @@ std::vector<uint8_t> ReadWaveImpl(std::istream &is, int32_t *sampling_rate,
   return ans;
 }
 
-std::vector<uint8_t> ReadWave(const std::string &filename,
+inline std::vector<uint8_t> ReadWave(const std::string &filename,
                               int32_t *sampling_rate, int8_t *channelCount,
                               bool *is_ok) {
   std::ifstream is(filename, std::ifstream::binary);
@@ -186,7 +194,7 @@ std::vector<uint8_t> ReadWave(const std::string &filename,
   return samples;
 }
 
-bool WriteWave(const std::string &filename, int32_t sampling_rate,
+inline bool WriteWave(const std::string &filename, int32_t sampling_rate,
                const int16_t *samples, int32_t n, uint8_t num_channels) {
   WaveHeader header{};
   header.chunk_id = 0x46464952;      // FFIR

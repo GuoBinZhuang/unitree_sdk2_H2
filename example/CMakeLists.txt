@@ -1,3 +1,8 @@
+## Header only utilities shared by the examples, included as "common/<file>.hpp"
+add_library(example_common INTERFACE)
+target_include_directories(example_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(example_common INTERFACE unitree_sdk2)
+
 add_subdirectory(helloworld)
 add_subdirectory(wireless_controller)
 add_subdirectory(jsonize)

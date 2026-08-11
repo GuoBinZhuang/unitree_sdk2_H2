@@ -5,10 +5,10 @@ add_executable(go2_sport_client go2_sport_client.cpp)
 target_link_libraries(go2_sport_client unitree_sdk2)
 
 add_executable(go2_low_level go2_low_level.cpp)
-target_link_libraries(go2_low_level unitree_sdk2)
+target_link_libraries(go2_low_level unitree_sdk2 example_common)
 
 add_executable(go2_stand_example go2_stand_example.cpp)
-target_link_libraries(go2_stand_example unitree_sdk2)
+target_link_libraries(go2_stand_example unitree_sdk2 example_common)
 
 
 add_executable(go2_robot_state_client go2_robot_state_client.cpp)

@@ -5,45 +5,12 @@
 #include <unitree/robot/g1/loco/g1_loco_api.hpp>
 #include <unitree/robot/g1/loco/g1_loco_client.hpp>
 
-std::vector<float> stringToFloatVector(const std::string &str) {
-  std::vector<float> result;
-  std::stringstream ss(str);
-  float num;
-  while (ss >> num) {
-    result.push_back(num);
-    // ignore any trailing whitespace
-    ss.ignore();
-  }
-  return result;
-}
+#include "common/cli_args.hpp"
 
 int main(int argc, char const *argv[]) {
   std::map<std::string, std::string> args = {{"network_interface", "lo"}};
 
-  std::map<std::string, std::string> values;
-  for (int i = 1; i < argc; ++i) {
-    std::string arg = argv[i];
-    if (arg.substr(0, 2) == "--") {
-      size_t pos = arg.find("=");
-      std::string key, value;
-      if (pos != std::string::npos) {
-        key = arg.substr(2, pos - 2);
-        value = arg.substr(pos + 1);
-
-        if (value.front() == '"' && value.back() == '"') {
-          value = value.substr(1, value.length() - 2);
-        }
-      } else {
-        key = arg.substr(2);
-        value = "";
-      }
-      if (args.find(key) != args.end()) {
-        args[key] = value;
-      } else {
-        args.insert({{key, value}});
-      }
-    }
-  }
+  unitree::common::ParseArgs(argc, argv, args);
 
   unitree::robot::ChannelFactory::Instance()->Init(0,
                                                    args["network_interface"]);
@@ -125,7 +92,7 @@ int main(int argc, char const *argv[]) {
     }
 
     if (arg_pair.first == "set_velocity") {
-      std::vector<float> param = stringToFloatVector(arg_pair.second);
+      std::vector<float> param = unitree::common::StringToFloatVector(arg_pair.second);
       auto param_size = param.size();
       float vx, vy, omega, duration;
       if (param_size == 3) {
@@ -215,7 +182,7 @@ int main(int argc, char const *argv[]) {
     }
 
     if (arg_pair.first == "move") {
-      std::vector<float> param = stringToFloatVector(arg_pair.second);
+      std::vector<float> param = unitree::common::StringToFloatVector(arg_pair.second);
       auto param_size = param.size();
       float vx, vy, omega;
       if (param_size == 3) {

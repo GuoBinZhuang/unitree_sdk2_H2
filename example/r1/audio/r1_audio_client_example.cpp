@@ -6,77 +6,12 @@
 #include <unitree/robot/channel/channel_subscriber.hpp>
 #include <unitree/robot/r1/audio/audio_client.hpp>
 
-#include "wav.hpp"
+#include "common/audio_example_utils.hpp"
 
 #define AUDIO_FILE_PATH "../example/r1/audio/test.wav"
 #define AUDIO_SUBSCRIBE_TOPIC "rt/audio_msg"
-#define GROUP_IP "239.168.123.161"
-#define PORT 5555
 
-#define WAV_SECOND 5  // record seconds
-#define WAV_LEN (16000 * 2 * WAV_SECOND)
-#define WAV_LEN_ONCE (16000 * 2 * 160 / 1000)
 #define CHUNK_SIZE 96000  // 3 seconds
-int sock;
-
-void asr_handler(const void *msg) {
-  std_msgs::msg::dds_::String_ *resMsg = (std_msgs::msg::dds_::String_ *)msg;
-  std::cout << "Topic:\"rt/audio_msg\" recv: " << resMsg->data() << std::endl;
-}
-
-std::string get_local_ip_for_multicast() {
-  struct ifaddrs *ifaddr, *ifa;
-  char host[NI_MAXHOST];
-  std::string result = "";
-
-  getifaddrs(&ifaddr);
-  for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-    if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET) continue;
-    getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST,
-                NULL, 0, NI_NUMERICHOST);
-    std::string ip(host);
-    if (ip.find("192.168.123.") == 0) {
-      result = ip;
-      break;
-    }
-  }
-  freeifaddrs(ifaddr);
-  return result;
-}
-
-void thread_mic(void) {
-  sock = socket(AF_INET, SOCK_DGRAM, 0);
-  sockaddr_in local_addr{};
-  local_addr.sin_family = AF_INET;
-  local_addr.sin_port = htons(PORT);
-  local_addr.sin_addr.s_addr = INADDR_ANY;
-  bind(sock, (sockaddr *)&local_addr, sizeof(local_addr));
-
-  ip_mreq mreq{};
-  inet_pton(AF_INET, GROUP_IP, &mreq.imr_multiaddr);
-  std::string local_ip = get_local_ip_for_multicast();
-  std::cout << "local ip: " << local_ip << std::endl;
-  mreq.imr_interface.s_addr = inet_addr(local_ip.c_str());
-  setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
-
-  int total_bytes = 0;
-  std::vector<int16_t> pcm_data;
-  pcm_data.reserve(WAV_LEN / 2);
-  std::cout << "start record!" << std::endl;
-  while (total_bytes < WAV_LEN) {
-    char buffer[WAV_LEN_ONCE];
-    ssize_t len = recvfrom(sock, buffer, sizeof(buffer), 0, nullptr, nullptr);
-    if (len > 0) {
-      size_t sample_count = len / 2;
-      const int16_t *samples = reinterpret_cast<const int16_t *>(buffer);
-      pcm_data.insert(pcm_data.end(), samples, samples + sample_count);
-      total_bytes += len;
-    }
-  }
-
-  WriteWave("record.wav", 16000, pcm_data.data(), pcm_data.size(), 1);
-  std::cout << "record finish! save to record.wav " << std::endl;
-}
 
 int main(int argc, char const *argv[]) {
   if (argc < 2) {
@@ -96,7 +31,7 @@ int main(int argc, char const *argv[]) {
   /*ASR message Example*/
   unitree::robot::ChannelSubscriber<std_msgs::msg::dds_::String_> subscriber(
       AUDIO_SUBSCRIBE_TOPIC);
-  subscriber.InitChannel(asr_handler);
+  subscriber.InitChannel(unitree::common::AsrHandler);
 
   /*Volume Example*/
   uint8_t volume;
@@ -165,7 +100,8 @@ int main(int argc, char const *argv[]) {
 
   std::cout << "AudioClient api test finish , asr start..." << std::endl;
 
-  std::thread mic_t(thread_mic);
+  std::thread mic_t(
+      [] { unitree::common::RecordMulticastMic("record.wav"); });
 
   while (1) {
     sleep(1);  // wait for asr message

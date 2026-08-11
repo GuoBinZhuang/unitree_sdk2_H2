@@ -7,15 +7,11 @@
 #include <stdexcept>
 #include <unitree/robot/as2/sport/sport_client.hpp>
 
+#include "common/sport_test_option.hpp"
+
 using namespace std;
 
-struct TestOption
-{
-    std::string name;
-    int id;
-};
-
-const vector<TestOption> option_list =
+const std::vector<unitree::common::TestOption> option_list =
     {
         {"damp", 0},
         {"balance_stand", 1},
@@ -61,56 +57,6 @@ const vector<TestOption> option_list =
 
 };
 
-int ConvertToInt(const std::string &str)
-{
-    try
-    {
-        std::stoi(str);
-        return std::stoi(str);
-    }
-    catch (const std::invalid_argument &)
-    {
-        return -1;
-    }
-    catch (const std::out_of_range &)
-    {
-        return -1;
-    }
-}
-
-class UserInterface
-{
-public:
-    UserInterface() {};
-    ~UserInterface() {};
-
-    void terminalHandle()
-    {
-        std::string input;
-        std::getline(std::cin, input);
-
-        if (input.compare("list") == 0)
-        {
-            for (TestOption option : option_list)
-            {
-                std::cout << option.name << ", id: " << option.id << std::endl;
-            }
-        }
-
-        for (TestOption option : option_list)
-        {
-            if (input.compare(option.name) == 0 || ConvertToInt(input) == option.id)
-            {
-                test_option_->id = option.id;
-                test_option_->name = option.name;
-                std::cout << "Test: " << test_option_->name << ", test_id: " << test_option_->id << std::endl;
-            }
-        }
-    };
-
-    TestOption *test_option_;
-};
-
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -120,15 +66,14 @@ int main(int argc, char **argv)
     }
     unitree::robot::ChannelFactory::Instance()->Init(0, argv[1]);
 
-    TestOption test_option;
+    unitree::common::TestOption test_option;
     test_option.id = 1;
 
     unitree::robot::as2::SportClient sport_client;
     sport_client.SetTimeout(25.0f);
     sport_client.Init();
 
-    UserInterface user_interface;
-    user_interface.test_option_ = &test_option;
+    unitree::common::UserInterface user_interface(option_list, &test_option);
 
     std::cout << "Input \"list \" to list all test option ..." << std::endl;
     long res_count = 0;
@@ -294,7 +239,6 @@ int main(int argc, char **argv)
         {
             res = sport_client.UpJump();
         }
-
 
         if (res < 0)
         {

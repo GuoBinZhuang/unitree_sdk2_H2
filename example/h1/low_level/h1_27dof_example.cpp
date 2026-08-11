@@ -12,6 +12,8 @@
 #include <unitree/idl/hg/LowCmd_.hpp>
 #include <unitree/idl/hg/LowState_.hpp>
 
+#include "common/crc32.hpp"
+
 static const std::string HG_CMD_TOPIC = "rt/lowcmd";
 static const std::string HG_STATE_TOPIC = "rt/lowstate";
 
@@ -115,28 +117,6 @@ enum H1JointIndex {
   RightWristYaw = 26
 };
 
-inline uint32_t Crc32Core(uint32_t *ptr, uint32_t len) {
-  uint32_t xbit = 0;
-  uint32_t data = 0;
-  uint32_t CRC32 = 0xFFFFFFFF;
-  const uint32_t dwPolynomial = 0x04c11db7;
-  for (uint32_t i = 0; i < len; i++) {
-    xbit = 1 << 31;
-    data = ptr[i];
-    for (uint32_t bits = 0; bits < 32; bits++) {
-      if (CRC32 & 0x80000000) {
-        CRC32 <<= 1;
-        CRC32 ^= dwPolynomial;
-      } else
-        CRC32 <<= 1;
-      if (data & xbit) CRC32 ^= dwPolynomial;
-
-      xbit >>= 1;
-    }
-  }
-  return CRC32;
-};
-
 float GetMotorKp(MotorType type) {
   switch (type) {
     case GearboxS:
@@ -223,8 +203,8 @@ class H1Example {
         *(const unitree_hg::msg::dds_::LowState_ *)message;
 
     if (low_state.crc() !=
-        Crc32Core((uint32_t *)&low_state,
-                  (sizeof(unitree_hg::msg::dds_::LowState_) >> 2) - 1)) {
+        unitree::common::Crc32Core((uint32_t *)&low_state,
+                                   (sizeof(unitree_hg::msg::dds_::LowState_) >> 2) - 1)) {
       std::cout << "low_state CRC Error" << std::endl;
       return;
     }
@@ -273,8 +253,8 @@ class H1Example {
         dds_low_command.motor_cmd().at(i).kd() = mc->kd.at(i);
       }
 
-      dds_low_command.crc() = Crc32Core((uint32_t *)&dds_low_command,
-                                        (sizeof(dds_low_command) >> 2) - 1);
+      dds_low_command.crc() = unitree::common::Crc32Core((uint32_t *)&dds_low_command,
+                                                         (sizeof(dds_low_command) >> 2) - 1);
       lowcmd_publisher_->Write(dds_low_command);
     }
   }

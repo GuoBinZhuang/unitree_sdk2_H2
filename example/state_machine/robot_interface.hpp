@@ -8,6 +8,8 @@
 #include "unitree/idl/go2/LowCmd_.hpp"
 #include "conversion.hpp"
 
+#include "common/crc32.hpp"
+
 namespace unitree::common
 {
 
@@ -101,7 +103,7 @@ namespace unitree::common
                 low_cmd.motor_cmd()[i].tau() = tau_ff.at(i);
             }
 
-            low_cmd.crc() = crc32_core((uint32_t *)&low_cmd, (sizeof(unitree_go::msg::dds_::LowCmd_)>>2)-1);
+            low_cmd.crc() = unitree::common::Crc32Core((uint32_t *)&low_cmd, (sizeof(unitree_go::msg::dds_::LowCmd_)>>2)-1);
             // lowCmd2Dds(low_cmd_raw, cmd);
             cmd = low_cmd;
         }
