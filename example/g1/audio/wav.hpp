@@ -2,12 +2,17 @@
 #define __UT_ROBOT_WAV_READER_HPP__
 
 struct WaveHeader {
-  void SeekToDataChunk(std::istream &is) {
+  // Returns false when no well formed data chunk is found.
+  bool SeekToDataChunk(std::istream &is) {
     while (is && subchunk2_id != 0x61746164) {
+      if (subchunk2_size < 0) {
+        return false;
+      }
       is.seekg(subchunk2_size, std::istream::cur);
       is.read(reinterpret_cast<char *>(&subchunk2_id), sizeof(int32_t));
       is.read(reinterpret_cast<char *>(&subchunk2_size), sizeof(int32_t));
     }
+    return static_cast<bool>(is) && subchunk2_size > 0;
   }
 
   int32_t chunk_id;
@@ -150,8 +155,21 @@ std::vector<uint8_t> ReadWaveImpl(std::istream &is, int32_t *sampling_rate,
   is.read(reinterpret_cast<char *>(&header.subchunk2_size),
           sizeof(header.subchunk2_size));
 
-  header.SeekToDataChunk(is);
-  if (!is) {
+  if (!header.SeekToDataChunk(is)) {
+    printf("Failed to find a valid data chunk\n");
+    *is_ok = false;
+    return {};
+  }
+
+  // The data chunk size comes from the file, so it must be checked against the
+  // bytes actually available before it is used as an allocation size.
+  std::streampos data_start = is.tellg();
+  is.seekg(0, std::istream::end);
+  std::streampos file_end = is.tellg();
+  is.seekg(data_start, std::istream::beg);
+  if (data_start < 0 || file_end < data_start || !is ||
+      header.subchunk2_size > (file_end - data_start)) {
+    printf("Invalid data chunk size: %d\n", header.subchunk2_size);
     *is_ok = false;
     return {};
   }

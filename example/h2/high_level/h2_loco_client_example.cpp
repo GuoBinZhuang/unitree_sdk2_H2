@@ -30,7 +30,7 @@ int main(int argc, char const *argv[]) {
         key = arg.substr(2, pos - 2);
         value = arg.substr(pos + 1);
 
-        if (value.front() == '"' && value.back() == '"') {
+        if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
           value = value.substr(1, value.length() - 2);
         }
       } else {
