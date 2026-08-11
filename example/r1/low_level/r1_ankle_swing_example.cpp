@@ -1,7 +1,9 @@
 #include <cmath>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <stdexcept>
 
 #include "gamepad.hpp"
 
@@ -191,9 +193,19 @@ class R1Example {
     msc_->SetTimeout(5.0f);
     msc_->Init();
     std::string form, name;
-    while (msc_->CheckMode(form, name), !name.empty()) {
-      if (msc_->ReleaseMode())
-        std::cout << "Failed to switch to Release Mode\n";
+    while (true) {
+      int32_t ret = msc_->CheckMode(form, name);
+      if (ret != 0) {
+        // do not assume no controller is running when the state is unknown
+        throw std::runtime_error("CheckMode failed, error code: " + std::to_string(ret));
+      }
+      if (name.empty()) {
+        break;
+      }
+      ret = msc_->ReleaseMode();
+      if (ret != 0) {
+        std::cerr << "[ERROR] Failed to switch to Release Mode, error code: " << ret << std::endl;
+      }
       sleep(5);
     }
 
@@ -368,11 +380,16 @@ class R1Example {
 
 int main(int argc, char const *argv[]) {
   if (argc < 2) {
-    std::cout << "Usage: r1_ankle_swing_example network_interface" << std::endl;
-    exit(0);
+    std::cerr << "Usage: r1_ankle_swing_example network_interface" << std::endl;
+    return 1;
   }
   std::string networkInterface = argv[1];
-  R1Example custom(networkInterface);
-  while (true) sleep(10);
+  try {
+    R1Example custom(networkInterface);
+    while (true) sleep(10);
+  } catch (const std::exception &e) {
+    std::cerr << "[ERROR] " << e.what() << std::endl;
+    return 1;
+  }
   return 0;
 }

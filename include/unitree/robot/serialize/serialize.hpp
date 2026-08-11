@@ -8,7 +8,7 @@ namespace unitree
 namespace robot
 {
 template<typename T>
-inline bool Serialize(const T& instance, std::string& serialziedData)
+inline bool Serialize(const T& instance, std::string& serialziedData, std::string* errorMessage = NULL)
 {
     try
     {
@@ -16,6 +16,11 @@ inline bool Serialize(const T& instance, std::string& serialziedData)
     }
     catch(const common::Exception& e)
     {
+        if (errorMessage != NULL)
+        {
+            *errorMessage = e.ToString();
+        }
+
         return false;
     }
 
@@ -23,7 +28,7 @@ inline bool Serialize(const T& instance, std::string& serialziedData)
 }
 
 template<typename T>
-inline bool Deserialize(const std::string& serialziedData, T& instance)
+inline bool Deserialize(const std::string& serialziedData, T& instance, std::string* errorMessage = NULL)
 {
     try
     {
@@ -31,6 +36,11 @@ inline bool Deserialize(const std::string& serialziedData, T& instance)
     }
     catch(const common::Exception& e)
     {
+        if (errorMessage != NULL)
+        {
+            *errorMessage = e.ToString();
+        }
+
         return false;
     }
 

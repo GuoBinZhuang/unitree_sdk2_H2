@@ -1,7 +1,9 @@
 #include <cmath>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <stdexcept>
 
 #include "gamepad.hpp"
 
@@ -158,6 +160,7 @@ private:
   int counter_;
   Mode mode_pr_;
   uint8_t mode_machine_;
+  uint64_t write_failure_counter_;
 
   Gamepad gamepad_;
   REMOTE_DATA_RX rx_;
@@ -176,7 +179,7 @@ private:
 public:
   H2Example(std::string networkInterface)
       : time_(0.0), control_dt_(0.002), duration_(3.0), counter_(0),
-        mode_pr_(Mode::PR), mode_machine_(0) {
+        mode_pr_(Mode::PR), mode_machine_(0), write_failure_counter_(0) {
     ChannelFactory::Instance()->Init(0, networkInterface);
 
     // try to shutdown motion control-related service
@@ -184,9 +187,18 @@ public:
     msc_->SetTimeout(5.0f);
     msc_->Init();
     std::string form, name;
-    while (msc_->CheckMode(form, name), !name.empty()) {
-      if (msc_->ReleaseMode())
-        std::cout << "Failed to switch to Release Mode\n";
+    while (true) {
+      int32_t ret = msc_->CheckMode(form, name);
+      if (ret != 0) {
+        throw std::runtime_error("CheckMode failed, error code: " + std::to_string(ret));
+      }
+      if (name.empty()) {
+        break;
+      }
+      ret = msc_->ReleaseMode();
+      if (ret != 0) {
+        std::cerr << "[ERROR] Failed to switch to Release Mode, error code: " << ret << std::endl;
+      }
       sleep(5);
     }
 
@@ -220,7 +232,7 @@ public:
     LowState_ low_state = *(const LowState_ *)message;
     if (low_state.crc() !=
         Crc32Core((uint32_t *)&low_state, (sizeof(LowState_) >> 2) - 1)) {
-      std::cout << "[ERROR] CRC Error" << std::endl;
+      std::cerr << "[ERROR] CRC Error" << std::endl;
       return;
     }
 
@@ -230,7 +242,7 @@ public:
       ms_tmp.q.at(i) = low_state.motor_state()[i].q();
       ms_tmp.dq.at(i) = low_state.motor_state()[i].dq();
       if (low_state.motor_state()[i].motorstate() && i <= RightAnkleRoll)
-        std::cout << "[ERROR] motor " << i << " with code "
+        std::cerr << "[ERROR] motor " << i << " with code "
                   << low_state.motor_state()[i].motorstate() << "\n";
     }
     motor_state_buffer_.SetData(ms_tmp);
@@ -320,7 +332,12 @@ public:
 
       dds_low_command.crc() = Crc32Core((uint32_t *)&dds_low_command,
                                         (sizeof(dds_low_command) >> 2) - 1);
-      lowcmd_publisher_->Write(dds_low_command);
+      // report at most once per second to keep the 500Hz loop responsive
+      if (!lowcmd_publisher_->Write(dds_low_command) &&
+          write_failure_counter_++ % 500 == 0) {
+        std::cerr << "[ERROR] Failed to publish low command on topic "
+                  << lowcmd_publisher_->GetChannelName() << std::endl;
+      }
     }
   }
 
@@ -368,13 +385,18 @@ public:
 
 int main(int argc, char const *argv[]) {
   if (argc < 2) {
-    std::cout << "Usage: h2_ankle_swing_example network_interface" << std::endl;
-    exit(0);
+    std::cerr << "Usage: h2_ankle_swing_example network_interface" << std::endl;
+    return 1;
   }
   std::string networkInterface = argv[1];
-  H2Example custom(networkInterface);
-  while (true)
-    sleep(10);
+  try {
+    H2Example custom(networkInterface);
+    while (true)
+      sleep(10);
+  } catch (const std::exception &e) {
+    std::cerr << "[ERROR] " << e.what() << std::endl;
+    return 1;
+  }
   return 0;
 }
 
